@@ -1,0 +1,6 @@
+[
+            VAR f (int -> int);
+            FUN func int [x : int] x ;
+            SET f func ;
+            ECHO (f 10)
+        ]

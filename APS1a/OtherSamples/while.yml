@@ -1,0 +1,22 @@
+titre: "Loop Test"
+description: "Simple WHILE test"
+prog: "[
+            VAR x int;
+            SET x 0;
+            WHILE (not (eq x 10)) [
+                ECHO x;
+                SET x (add x 1)
+            ]
+        ]"
+typeur: true
+IO:
+    - val(0)
+    - val(1)
+    - val(2)
+    - val(3)
+    - val(4)
+    - val(5)
+    - val(6)
+    - val(7)
+    - val(8)
+    - val(9)

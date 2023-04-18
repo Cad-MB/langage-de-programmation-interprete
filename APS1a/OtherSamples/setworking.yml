@@ -1,0 +1,14 @@
+titre: "SET OK"
+description: "Setting a variable"
+prog: "[
+            VAR x int;
+            CONST y int 2;
+            SET x 3;
+            ECHO x;
+            SET x y;
+            ECHO x
+        ]"
+typeur: true
+IO:
+    - val(3)
+    - val(2)

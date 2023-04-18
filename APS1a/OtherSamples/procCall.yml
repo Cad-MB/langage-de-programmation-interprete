@@ -1,0 +1,11 @@
+titre: "Procedure test"
+description: "Simple Procedure test"
+prog: "[
+            VAR x int ;
+            PROC setX [value : int] [SET x value] ;
+            CALL setX 5;
+            ECHO x
+        ]"
+typeur: true
+IO:
+    - val(5)

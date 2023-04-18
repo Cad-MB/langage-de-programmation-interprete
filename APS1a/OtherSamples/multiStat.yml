@@ -1,0 +1,15 @@
+titre: "Plusieurs instructions"
+description: "Programme avec plusieurs instructions"
+prog: "[
+        VAR x int;
+        CONST y int 10;
+        FUN max int [a : int, b : int] (if (gt a b) a b);
+        SET x 3;
+        ECHO (add 5 (max x y));
+        CONST z int 100;
+        ECHO z
+      ]"
+typeur: true
+IO:
+  - val(15)
+  - val(100)

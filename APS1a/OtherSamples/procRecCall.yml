@@ -1,0 +1,34 @@
+titre: "Procédure récursive"
+description: "appel d'une procédure récursive"
+prog: "[
+    VAR x int ;
+    PROC setX [b : bool, y : int]
+        [ IF b 
+            [ SET x 10 ]
+            [ SET x y ]
+        ] ;
+    VAR z bool ;
+    SET z true ;
+    VAR cpt int ;
+    SET cpt 1 ;
+    PROC REC multiPrintX [y : int]
+        [
+            WHILE (not (eq cpt 5)) [
+                CALL setX z y ;
+                ECHO x ;
+                SET z (not z) ;
+                SET cpt (add cpt 1)
+            ] ;
+            ECHO -1
+        ] ;
+    CALL multiPrintX 3000 ;
+    ECHO cpt
+]"
+typeur: true
+IO:
+    - val(10)
+    - val(3000)
+    - val(10)
+    - val(3000)
+    - val(-1)
+    - val(5)

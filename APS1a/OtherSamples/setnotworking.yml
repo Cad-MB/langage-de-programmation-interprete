@@ -1,0 +1,12 @@
+titre: "SET fail"
+description: "Setting non variable"
+prog: "[
+            VAR x int;
+            CONST y int 2;
+            SET x 3;
+            ECHO x;
+            SET y 3;
+            ECHO x
+        ]"
+typeur: false
+IO: []

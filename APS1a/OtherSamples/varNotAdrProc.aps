@@ -1,0 +1,8 @@
+[
+            VAR x int ;
+            VAR res int ;
+            PROC p [ var y : int, z : int] [SET res (add y z)] ;
+            SET x 7 ;
+            CALL p x 10;
+            ECHO res
+        ]

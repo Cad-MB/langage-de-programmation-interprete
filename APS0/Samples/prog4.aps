@@ -1,0 +1,1 @@
+[ FUN third int [x:int] (div x 3) ; CONST x int 10 ; ECHO (add (mul 42 x) (sub (third 84) 42)) ]

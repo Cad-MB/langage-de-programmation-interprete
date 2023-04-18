@@ -1,0 +1,12 @@
+titre: "Procedure et environnement statique"
+description: "Test environnement statique"
+prog: "[
+            VAR x int ;
+            PROC setX [value : int] [SET x value] ;
+            CONST x int 10 ;
+            CALL setX 5 ;
+            ECHO x 
+        ]"
+typeur: true
+IO:
+    - val(10)

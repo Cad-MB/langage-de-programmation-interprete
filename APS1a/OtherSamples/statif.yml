@@ -1,0 +1,15 @@
+titre: "Test instruction IF"
+description: "Simple IF test"
+prog: "[
+        CONST x int 2 ;
+        FUN REC recMult int [y : int] (if (eq y 0) 0 (add x (recMult (sub y 1)))) ;
+        CONST x bool true ;
+        VAR z int ;
+        IF x [ CONST z int 7 ; ECHO (recMult z) ] [ SET z (recMult 4) ] ;
+        SET z -1 ;
+        ECHO z
+      ]"
+typeur: true
+IO:
+  - val(14)
+  - val(-1)

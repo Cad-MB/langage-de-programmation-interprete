@@ -1,0 +1,18 @@
+titre: "Plusieurs ECHO"
+description: "Test plusieurs ECHO dans programme"
+prog: "[
+            VAR x int ;
+            SET x 1 ;
+            WHILE (lt x 5) [
+                ECHO x ;
+                SET x (add x 1)
+            ] ;
+            ECHO -1 
+        ]"
+typeur: true
+IO:
+    - val(1)
+    - val(2)
+    - val(3)
+    - val(4)
+    - val(-1)

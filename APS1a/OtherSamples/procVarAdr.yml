@@ -1,0 +1,11 @@
+titre: "Procedure and variables arguments"
+description: "Reference in procedure arguments"
+prog: "[
+            VAR x int ;
+            PROC setX [var x : int, value : int] [SET x value] ;
+            CALL setX (adr x) 5;
+            ECHO x
+        ]"
+typeur: true
+IO:
+    - val(5)
