@@ -28,4 +28,4 @@ Langages abordes en TD/TME:
 
 ▶ evaluateur: libre (langage fonctionnel avec pattern-matching conseille - OCaml)
 
-▶ liant: langage libre (langage de scripts ?)
+▶ liant: langage libre

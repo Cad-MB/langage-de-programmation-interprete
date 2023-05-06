@@ -14,6 +14,7 @@ type valeur =
   | InP of block * string list * env list
     (*[Fermetures procédurales récursives] PR = Cmds × ident × ident∗ × E*)
   | InPR of block * string * string list * env list
+  | InB of int * int
 
 (*E = ident → V*)
 and env = Couple of string * valeur
@@ -57,6 +58,8 @@ let rec chercher_mem adr l =
 (*injection canonique inZ*)
 let get_InZ v = match v with InZ n -> n | _ -> failwith "erreur get_InZ"
 
+
+
 (*Fonctions primitives*)
 (*bop*)
 let prim_1v op v =
@@ -65,7 +68,7 @@ let prim_1v op v =
       if get_InZ v == 0 then InZ 1
       else if get_InZ v == 1 then InZ 0
       else failwith "erreur prim_1v"
-  | _ -> failwith "Not a valid Prim1"
+  | _ -> failwith "prim_1v non vqlide"
 (*uop*)
 
 let prim_2v op v1 v2 =
@@ -77,7 +80,7 @@ let prim_2v op v1 v2 =
   | ASTId "sub" -> InZ (inZ_v1 - inZ_v2)
   | ASTId "mul" -> InZ (inZ_v1 * inZ_v2)
   | ASTId "div" -> InZ (inZ_v1 / inZ_v2)
-  | _ -> failwith "Not a valid Prim2"
+  | _ -> failwith "prim_2v non vqlide"
 
 let rec get_args l =
   match l with [] -> [] | ASTArg (str, _) :: tl -> str :: get_args tl
@@ -92,32 +95,35 @@ let rec get_argsp l =
 let rec calcul_expression expr env mem =
   match expr with
   (*TRUE*)
-  | ASTId "true" -> InZ 1
+  | ASTId "true" -> (InZ 1, mem)
   (*FALSE*)
-  | ASTId "false" -> InZ 0
+  | ASTId "false" -> (InZ 0, mem)
   (*NUM*)
-  | ASTNum n -> InZ n
+  | ASTNum n -> (InZ n, mem)
   (*ID*)
   | ASTId id ->
       if in_env id env then
         match chercher_env id env with
         | InA a ->
-            if in_mem a mem then !(chercher_mem a mem)
+            if in_mem a mem then (!(chercher_mem a mem), mem)
             else failwith "adresse n'existe pas"
-        | v -> v
+        | v -> (v, mem)
       else failwith (id ^ " variable absente de l'environnement")
   (*AND*)
-  | ASTAnd (e1, e2) ->
-      if calcul_expression e1 env mem = InZ 0 then InZ 0
-      else calcul_expression e2 env mem
+  | ASTAnd (e1, e2) -> let (v, mem1) = calcul_expression e1 env mem in
+                            if v == InZ 0 
+                            then (InZ(0), mem1) 
+                            else calcul_expression e2 env mem1
   (*OR*)
-  | ASTOr (e1, e2) ->
-      if calcul_expression e1 env mem = InZ 1 then InZ 1
-      else calcul_expression e2 env mem
+  | ASTOr (e1, e2) -> let (v, mem1) = calcul_expression e1 env mem in
+                            if v == InZ 1 
+                            then (InZ(1), mem1) 
+                            else calcul_expression e2 env mem1
   (*IF*)
-  | ASTIf (e1, e2, e3) ->
-      if calcul_expression e1 env mem = InZ 1 then calcul_expression e2 env mem
-      else calcul_expression e3 env mem
+  | ASTIf (e1, e2, e3) -> let (v, mem1) = calcul_expression e1 env mem in
+                            if v = InZ 1
+                            then calcul_expression e2 env mem1
+                            else calcul_expression e3 env mem1
   (*ABS*)
   | ASTLambda (al, e) -> InF (e, get_args al, env)
   (*APP*)
@@ -125,20 +131,21 @@ let rec calcul_expression expr env mem =
       if is_prim1 e then
         (*PRIM1*)
         match el with
-        | [] -> failwith "Missing argument for unary operator"
+        | [] -> failwith "arguments manquant"
         | [ e1 ] -> prim_1v e (calcul_expression e1 env mem)
-        | _ -> failwith "Too many arguments for unary operator"
+        | _ -> failwith "Trop d'arguments"
       else if is_prim2 e then
         (*PRIM2*)
         match el with
-        | [] -> failwith "Missing arguments for binary operator"
+        | [] -> failwith "arguments manquant"
         | [ e1; e2 ] ->
             prim_2v e
               (calcul_expression e1 env mem)
               (calcul_expression e2 env mem)
-        | _ -> failwith "Too many arguments for binary operator"
+        | _ -> failwith "Trop d'arguments"
       else
-        match calcul_expression e env mem with
+        let (f, env_prim) = (calcul_expression e env mem) in
+                    match f with
         (*APP*)
         | InF (e2, args, env2) ->
             let new_env = env2 @ assoc_arg_val args el env mem in
@@ -152,6 +159,57 @@ let rec calcul_expression expr env mem =
             in
             calcul_expression e2 new_env mem
         | _ -> failwith "erreur calcul_expression ASTApp")
+(*len*)
+|ASTLen e -> let (v, new_mem) = calcul_expression e env mem in
+        begin
+        match v with
+        | InB (a,n) -> (InZ n , new_mem)
+        | _ -> failwith "erreur len"
+        end
+(*nth*)
+|ASTNth (e1, e2) -> 
+        let (v1, mem1) = calcul_expression e1 env mem in
+            let (v2, mem2) = calcul_expression e2 env mem1 in
+                begin
+                    match v2 with
+                    | InZ i -> (
+                        match v1 with
+                        | InB(a,n) -> (
+                            if (i < n) 
+                            then (!(chercher_mem (a+i) mem2), mem2)
+                            else failwith "ASTNth stack overflow"; )
+                        | InZ i -> failwith "erreur ASTNth inZ : pas un tableau" ; 
+                        | _ -> failwith "erreur nth : pas un tableau"; 
+                        )
+                    | _ -> failwith "erreur nth"
+                end    
+(*alloc*)
+|ASTAlloc e -> let (v, new_mem) = calcul_expression e env mem in
+        begin
+        match v with
+        | InZ n -> let (a, mem_prim) = allocn new_mem n in
+                        (InB(a,n), mem_prim)
+        | _ -> failwith "erreur alloc : pas un tableau"
+        end 
+(*vset*)
+|ASTVset(e1, e2, e3) -> 
+        let (v1, mem1) = calcul_expression e1 env mem in
+        let (v2, mem2) = calcul_expression e2 env mem1 in
+        let (v3, mem3) = calcul_expression e3 env mem2 in
+            begin
+                match v2 with
+                | InZ i -> (
+                    match v1 with
+                    | InB(a,n) ->  if (i < n) 
+                                    then (
+                                        (chercher_mem (a+i) mem3) := v3;
+                                        (InB(a,n), mem3)
+                                    )
+                                    else failwith "vset"; 
+                    | _ -> failwith "erreur vset : pas un tableau"; 
+                  )
+                | _ -> failwith "erreur vset" 
+            end     
 
 (*sert au nouvelle environnement*)
 and assoc_arg_val args el env mem =
@@ -173,25 +231,39 @@ let calcul_exprp ep env mem =
 let rec assoc_arg_val_p args el env mem =
   match (args, el) with
   | [], [] -> []
-  | arg :: atl, e :: etl ->
-      Couple (arg, calcul_exprp e env mem) :: assoc_arg_val_p atl etl env mem
-  | _ -> failwith "erreur assoc_arg_val_p"
+  |arg::atl, e::etl -> let (v, new_mem) = calcul_exprp e env mem in 
+                        Couple(arg, v) :: assoc_arg_val_p atl etl env mem 
+    |_ -> failwith "erreur assoc_arg_val_p"
 
 (*Definition*)
 (*allocation*)
 
 let alloc_indice = ref 0
 
-let alloc mem =
-  let res = (!alloc_indice, Mem (!alloc_indice, ref (InZ (-1))) :: mem) in
-  alloc_indice := !alloc_indice + 1;
-  res
+let alloc mem = 
+    let res = (!alloc_indice, Mem(!alloc_indice, ref (InZ(-1)))::mem) in
+    alloc_indice := !alloc_indice + 1;
+    res
+
+let allocn mem n = 
+    if (n <= 0) then failwith "argument invalide pour l'alloc" 
+    else
+        let adresse = !alloc_indice in
+            let rec add_to_mem new_mem size =
+                match size with
+                |0 -> new_mem
+                |_ -> (
+                    let tmp = !alloc_indice in
+                    alloc_indice := (!alloc_indice +1);
+                    add_to_mem (Mem(tmp, ref (InZ -1 ))::new_mem) (size-1)
+                ) 
+            in (adresse, (add_to_mem mem n))
 
 let rec calcul_def expr env mem =
   match expr with
   (*CONST*)
-  | ASTConst (str, _, e) ->
-      (Couple (str, calcul_expression e env mem) :: env, mem)
+  | ASTConst(str, _, e) -> let (v, new_mem) = calcul_expression e env mem in
+                            (Couple(str, v)::env, new_mem)
   (*FUN*)
   | ASTFun (str, _, args, e) ->
       (Couple (str, InF (e, get_args args, env)) :: env, mem)
@@ -209,15 +281,44 @@ let rec calcul_def expr env mem =
   | ASTProcRec (str, args, bk) ->
       (Couple (str, InPR (bk, str, get_argsp args, env)) :: env, mem)
 
+
+(* Lvalue *)
+let rec calcul_lval lval env mem = 
+  match lval with
+  | ASTLvId x  -> 
+      if in_env x env then 
+          match chercher_env x env with
+          | InA a -> (InA a, mem)
+          | InB(a, n) -> (InB(a,n) , mem)
+          | _ -> failwith "ASTLvId"
+      else failwith "ident n'existe pas"
+  | ASTLvVar(lv, e) -> 
+      let (v1, mem1) = calcul_lval lv env mem in
+          match v1 with
+          | InB(a, n) -> 
+            (
+              let (v, new_mem) = calcul_expression e env mem1 in
+              match v with
+              | InZ x -> 
+                (
+                  let ad = a + x in
+                      match !(chercher_mem ad mem) with
+                      | InB(adr, n) ->  (InB(adr, n), new_mem)
+                      | _ -> (InA ad, new_mem)
+                )
+              | _ -> failwith "pas un entier"
+            )
+          | _ -> failwith "pas un bloc"
+
 (*Suites de commandes*)
 let rec calcul_cmds cmds env mem flux =
   match cmds with
   (*DEFS*)
-  | ASTDefEtc (def, tl) ->
+  | ASTDef (def, tl) ->
       let new_env, new_mem = calcul_def def env mem in
       calcul_cmds tl new_env new_mem flux
   (*STAT*)
-  | ASTStatEtc (stat, tl) ->
+  | ASTStat (stat, tl) ->
       let new_mem, new_flux = calcul_instr stat env mem flux in
       calcul_cmds tl env new_mem new_flux
   (*END*)
@@ -231,39 +332,30 @@ and calcul_block cmds env mem flux =
 and calcul_instr stat env mem flux =
   match stat with
   (*ECHO*)
-  | ASTEcho e -> (mem, get_InZ (calcul_expression e env mem) :: flux)
-  | ASTSet (x, e) ->
-      (* Si l'AST est un ASTSet, on entre dans cette branche *)
-      if in_env x env then
-        (* On vérifie si la variable x existe dans l'environnement *)
-        match chercher_env x env with
-        (* On cherche l'adresse mémoire de la variable x dans l'environnement *)
-        | InA adr ->
-            (* Si l'adresse de x est trouvée, on entre dans cette branche *)
-            let v = calcul_expression e env mem in
-            (* On calcule la valeur de l'expression à droite de l'opérateur d'affectation *)
-            if in_mem adr mem then (
-              (* On vérifie si l'adresse de x existe dans la mémoire *)
-              let v_pre = chercher_mem adr mem in
-              (* On cherche la valeur précédente de x dans la mémoire *)
-              v_pre := v;
-              (* On modifie la valeur précédente de x dans la mémoire avec la nouvelle valeur v *)
-              (mem, flux)
-              (* On retourne la mémoire et le flux inchangés *))
-            else failwith "adresse n'existe pas"
-            (* Si l'adresse de x n'existe pas dans la mémoire, on lève une exception *)
-        | _ -> failwith "mauvaise valeur"
-        (* Si x n'est pas une adresse mémoire, on lève une exception *)
-      else failwith "ident n'existe pas"
-        (* Si x n'existe pas dans l'environnement, on lève une exception *)
-  | ASTWhile (e, b) ->
-      if calcul_expression e env mem = InZ 0 then (mem, flux)
-      else
-        let mem1, flux1 = calcul_block b env mem flux in
-        calcul_instr stat env mem1 flux1
-  | ASTIfBig (e, b1, b2) ->
-      if calcul_expression e env mem = InZ 1 then calcul_block b1 env mem flux
-      else calcul_block b2 env mem flux
+  | ASTEcho e -> let (v, new_mem) = calcul_expression e env mem in
+                  (new_mem, get_InZ v::flux)
+    | ASTSet(lv, e) ->  let (v, mem1) = calcul_expression e env mem in
+                        let (adr, mem2) = calcul_lval lv env mem1 in
+                        (
+                            match adr with
+                            | InA a -> (
+                                chercher_mem a mem2 := v;
+                                (mem2, flux)
+                                )
+                            |_ -> failwith "erreur calcul_expression ASTSet"
+                        )
+    | ASTWhile(e, b) -> let (v, mem1) = calcul_expression e env mem in
+                        if v = InZ 0
+                        then (mem1,flux)
+                        else 
+                        begin
+                            let (mem2,flux1) = calcul_block b env mem1 flux in
+                            calcul_instr stat env mem2 flux1
+                        end
+    | ASTIfBig(e, b1, b2) -> let (v, new_mem) = calcul_expression e env mem in
+                            if v = InZ 1
+                            then calcul_block b1 env new_mem flux
+                            else calcul_block b2 env new_mem flux 
   (*| ASTCall (e, el) -> (
       match calcul_expression e env mem with
       | InP (bk, args, env2) ->

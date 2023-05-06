@@ -35,4 +35,5 @@ clean:
 	rm -f lexer.ml
 	rm -f parser.mli
 	rm -f parser.ml
+	rm -f evaluateur
 	rm *~

@@ -8,16 +8,57 @@
 (* ==  Arbre de syntaxe abstraite                                          == *)
 (* ========================================================================== *)
 
+type typ = ASTBool | ASTInt | ASTTypeFunc of typs * typ (*->*)
+and typs = ASTType of typ | ASTTypes of typ * typs
+  
+type arg = ASTArg of string * typ
+and args = arg list
+
+type argp = ASTArgp of string * typ | ASTArgpVar of string * typ
+and argsp = argp list
 
 type expr =
-    ASTNum of int
+  | ASTNum of int
   | ASTId of string
-  | ASTApp of expr * expr list
+  | ASTIf of expr * expr * expr
+  | ASTAnd of expr * expr
+  | ASTOr of expr * expr
+  | ASTApp of expr * exprs
+  | ASTLambda of args * expr
+  | ASTLen of expr
+  | ASTNth of expr * expr
+  | ASTAlloc of expr
+  | ASTVset of expr * expr * expr
 
-type stat =
-    ASTEcho of expr
-      
-type cmd =
-    ASTStat of stat
+  and exprs = expr list
 
-	
+  type exprp = ASTExpr of expr | ASTAdr of string
+  and exprsp = exprp list
+
+type lval =
+    ASTLvId of string
+  | ASTLvVar of lval * expr
+
+type cmds =
+  | ASTStat of stat
+  | ASTDefEtc of def * cmds
+  | ASTStatEtc of stat * cmds
+
+and block = ASTBlock of cmds
+
+and stat =
+  | ASTEcho of expr
+  | ASTSet of string * expr
+  | ASTIfBig of expr * block * block
+  | ASTWhile of expr * block
+  | ASTCall of string * exprsp
+  
+and def = 
+  | ASTConst of string * typ * expr
+  | ASTFun of string * typ * args * expr
+  | ASTFunRec of string * typ * args * expr
+  | ASTVar of string * typ
+  | ASTProc of string * argsp * block
+  | ASTProcRec of string * argsp * block
+
+type prog = ASTProg of block

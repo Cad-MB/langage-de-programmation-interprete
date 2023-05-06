@@ -88,7 +88,7 @@ typeStat(G,call(ID,ARGS),void) :-
 
 /*APS1a: Set*/
 typeStat(G,set(ID,E),void) :-
-	assoc(ID,G,ref(T)),
+	assoc(ID,G,T),
 	typeExpr(G,E,T).
 
 /*const*/
@@ -130,6 +130,25 @@ typeDef(G,procRec(ID,ARGSP,BLOCK),CB) :-
 	CTT = [(ID,typeFunc(RES,void))|CT],
 	typeBlock(CTT,BLOCK,void),
 	CB=[(ID,typeFunc(RES,void))|G].
+
+/*APS3: FunP*/
+typeDef(C,funp(ID,T,ARGS,BLOC),CB) :-
+	get_typeArgs(ARGS,RES),
+	append(ARGS,C,CT),
+	get_typeArgsp(ARGS,RES),
+	CB=[(ID,arrow(RES,T))|C].
+
+/*APS3: FunP Rec*/
+typeDef(G,funPRec(X,T,ARGS,BLOC),[(X,typeFunc(TS,T))|G]) :-
+	get_typeArgsp(ARGS,RES),
+	append(ARGS,C,CT),
+	CTT = [(ID,arrow(RES,T))|CT],
+	typeBlock(CTT,BLOCK,T),
+	CB=[(ID,arrow(RES,T))|C].
+
+/*APS3: RET*/
+typeCmds(C,[ret(E),void],T) :-
+	typeExpr(C,E,T).
 
 
 /*Expressions*/
@@ -182,6 +201,27 @@ typeExpr(G,abs(ARGS,BODY),typeFunc(TL,TF)) :-
 	get_typeArgs(ARGS,TL),
 	append(ARGS,G,CB),
 	typeExpr(CB,BODY,TF).
+
+
+/*APS2*/
+/* alloc */
+typeExpr(G, alloc(E), typeVec(_)) :- 
+    typeExpr(G,E,int).
+
+/* len */
+typeExpr(G, len(E), int) :- 
+    typeExpr(G,E,typeVec(_)).
+
+/* nth */
+typeExpr(G, nth(E1,E2), T) :- 
+    typeExpr(G,E1,typeVec(T)),
+    typeExpr(G,E2,int).
+
+/* vset */
+typeExpr(G, vset(E1,E2,E3), typeVec(T)) :- 
+    typeExpr(G,E1,typeVec(T)),
+    typeExpr(G,E2,int),
+    typeExpr(G,E3,T).
 
 /*Paramètres d'appel (APS1a)*/
 
